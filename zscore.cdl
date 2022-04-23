@@ -1,0 +1,28 @@
+netcdf zscore {
+dimensions:
+	lon = 9 ;
+	lat = 9 ;
+	time = UNLIMITED ;
+variables:
+	float lon(lon) ;
+		lon:long_name = "longitude" ;
+		lon:units = "degrees_east" ;
+		lon:actual_range = 1755000.f, 1835000.f ;
+	float lat(lat) ;
+		lat:long_name = "latitude" ;
+		lat:units = "degrees_north" ;
+		lat:actual_range = 824999.8f, 905000.2f ;
+	int time(time) ;
+		time:long_name = "time" ;
+		time:units = "years since 1950-00-00 00:00" ;
+	float zscore_burnedf(time, lat, lon) ;
+		zscore_burnedf:long_name = "z-score of burned fraction" ;
+		zscore_burnedf:units = "z" ;
+		zscore_burnedf:_FillValue = -9999.f ;
+		zscore_burnedf:missing_value = -9999.f ;
+	float zscore_acflux(time, lat, lon) ;
+		zscore_acflux:long_name = "z-score of fire carbon emissions" ;
+		zscore_acflux:units = "z" ;
+		zscore_acflux:_FillValue = -9999.f ;
+		zscore_acflux:missing_value = -9999.f ;
+}

@@ -8,10 +8,10 @@ do
 
   outfile=${fname%%.*}_zscore.nc
   
-  ncgen -k 4 -o $outfile zscore.cdl
+  ncgen -k 4 -o output/$outfile zscore.cdl
   
   echo "working on $outfile"  >&2
   
-  ./postprocess $infile $outfile
+  ./lpj2char $infile output/$outfile
 
 done

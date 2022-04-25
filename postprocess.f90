@@ -197,18 +197,21 @@ do y = 1,ylen
     vals => burnedf(x,y,t0:t1)
     
     if (count(vals > 0.) == 0) cycle
-
+    
     ! (1) min-max
   
     bfmin = minval(vals)
     bfmax = maxval(vals)
 
-    mmtransform = (vals - bfmin) / (bfmax - bfmin) + alpha
+    mmtransform = (vals - bfmin) / (bfmax - bfmin)
     
-    ! Following Bart's (2022) advice, lambda is calculated after adding alpha.
+    ! Following Bart's (2022) advice, lambda is estimated after adding alpha.
+
+    mmtransform = mmtransform + alpha
+
+    ! Following GCD convention, the range of lambda is limited to (-2,2).
     ! In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
-    ! Further following GCD convention, the range of lambda is limited to (-2,2).
     
     lambda = estlambda(mmtransform,2._dp)
 
@@ -253,18 +256,21 @@ do y = 1,ylen
     vals => acflux_fire(x,y,t0:t1)
     
     if (count(vals > 0.) == 0) cycle
-
+    
     ! (1) min-max
   
     bfmin = minval(vals)
     bfmax = maxval(vals)
 
-    mmtransform = (vals - bfmin) / (bfmax - bfmin) + alpha
+    mmtransform = (vals - bfmin) / (bfmax - bfmin)
     
-    ! Following Bart's (2022) advice, lambda is calculated after adding alpha.
+    ! Following Bart's (2022) advice, lambda is estimated after adding alpha.
+
+    mmtransform = mmtransform + alpha
+
+    ! Following GCD convention, the range of lambda is limited to (-2,2).
     ! In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
-    ! Further following GCD convention, the range of lambda is limited to (-2,2).
     
     lambda = estlambda(mmtransform,2._dp)
 

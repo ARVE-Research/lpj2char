@@ -21,10 +21,14 @@ variables:
 		zscore_burnedf:_FillValue = -9999.f ;
 		zscore_burnedf:missing_value = -9999.f ;
 		zscore_burnedf:actual_range = 0.f,0.f ;
+		zscore_burnedf:_ChunkSizes = 500, 9, 9 ;
+		zscore_burnedf:_DeflateLevel = 1 ;
 	float zscore_acflux(time, lat, lon) ;
 		zscore_acflux:long_name = "z-score of fire carbon emissions" ;
 		zscore_acflux:units = "z" ;
 		zscore_acflux:_FillValue = -9999.f ;
 		zscore_acflux:missing_value = -9999.f ;
 		zscore_acflux:actual_range = 0.f,0.f ;
+		zscore_acflux:_ChunkSizes = 500, 9, 9 ;
+		zscore_acflux:_DeflateLevel = 1 ;
 }

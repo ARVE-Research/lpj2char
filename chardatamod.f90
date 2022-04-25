@@ -4,14 +4,22 @@ use iso_fortran_env
 
 implicit none
 
-public :: mean
-public :: stdev
-public :: lambda
-public :: boxcox
+public  :: mean
+public  :: stdev
+public  :: lambda
+public  :: boxcox
+private :: lik
 
 integer, parameter :: i4 = int32
 integer, parameter :: sp = real32
 integer, parameter :: dp = real64
+
+! ------------------------------
+! interfaces for overloaded functions for 
+! the statistical routines for creating z-scores
+! NB the lambda function is not overloaded
+! because it only functions properly with 
+! values in real64
 
 interface mean
   module procedure mean_sp,mean_dp
@@ -107,17 +115,17 @@ end function stdev_dp
 
 ! ------------------------------
 
-real(dp) function lambda(vals)
+real(dp) function lambda(vals,rng)
 
 ! estimate the lambda parameter used in the Box-Cox transformation
-! using a maximum likelihood with simple bisection in the range of (-b,b)
+! using a maximum likelihood with simple bisection in the range of (-rng,rng)
 
 implicit none
 
 real(dp), dimension(:), intent(in) :: vals
+real(dp)              , intent(in) :: rng
 
-! the range over which to estimate lambda. In edge cases, lambda will converge on one of the boundaries
-real(dp), parameter :: b = 2._dp  
+! rng is the range over which to estimate lambda. In edge cases, lambda will converge on one of the boundaries
 
 ! tolerance parameter, exit the loop when the improvement in likelihood is smaller than this value
 real(dp), parameter :: eps = 1.e-8  
@@ -140,9 +148,9 @@ integer :: i
 
 ! -----
 
-lam0 = -b
+lam0 = -rng
 lam1 =  0._dp
-lam2 =  b
+lam2 =  rng
 
 lik0 = lik(vals,lam0)
 lik1 = lik(vals,lam1)

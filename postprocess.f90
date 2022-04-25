@@ -175,12 +175,12 @@ do y = 1,ylen
 
     mmtransform = (vals - bfmin) / (bfmax - bfmin) + alpha
     
-    ! need to use double precision version of get_boxcox() because it fails with single
-    ! Following Bart's (2022) advice, lambda is calculated after adding alpha
-    ! in cases with relatively few fire observations relative to zero background,
-    ! lambda ends up being on the boundary of the search domain
+    ! Following Bart's (2022) advice, lambda is calculated after adding alpha.
+    ! In cases with relatively few fire observations relative to zero background,
+    ! lambda ends up being on the boundary of the search domain. 
+    ! Further following GCD convention, the range of lambda is limited to (-2,2).
     
-    lambda = estlambda(mmtransform)
+    lambda = estlambda(mmtransform,2._dp)
 
     ! (2) box-cox
 

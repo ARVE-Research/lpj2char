@@ -189,8 +189,6 @@ allocate(bctransform_minmax(olen))
 
 allocate(bctransform_zscore(xlen,ylen,olen))
 
-bctransform_zscore = missing
-
 ! -------------------------
 ! calculations for burned area fraction
 
@@ -199,6 +197,8 @@ if (status /= nf90_noerr) call netcdf_err(status)
 
 status = nf90_get_att(ncid,varid,'missing_value',missing)
 if (status /= nf90_noerr) call netcdf_err(status)
+
+bctransform_zscore = missing
 
 do y = 1,ylen
   do x = 1,xlen
@@ -260,6 +260,8 @@ if (status /= nf90_noerr) call netcdf_err(status)
 
 status = nf90_get_att(ncid,varid,'missing_value',missing)
 if (status /= nf90_noerr) call netcdf_err(status)
+
+bctransform_zscore = missing
 
 do y = 1,ylen
   do x = 1,xlen

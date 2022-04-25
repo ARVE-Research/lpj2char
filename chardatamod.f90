@@ -8,18 +8,15 @@ public  :: mean
 public  :: stdev
 public  :: lambda
 public  :: boxcox
-private :: lik
+private :: llik
 
 integer, parameter :: i4 = int32
 integer, parameter :: sp = real32
 integer, parameter :: dp = real64
 
 ! ------------------------------
-! interfaces for overloaded functions for 
-! the statistical routines for creating z-scores
-! NB the lambda function is not overloaded
-! because it only functions properly with 
-! values in real64
+! interfaces for overloaded functions for the statistical routines for creating z-scores
+! NB the lambda function is not overloaded because it only functions properly with values in real64
 
 interface mean
   module procedure mean_sp,mean_dp
@@ -152,9 +149,9 @@ lam0 = -rng
 lam1 =  0._dp
 lam2 =  rng
 
-lik0 = lik(vals,lam0)
-lik1 = lik(vals,lam1)
-lik2 = lik(vals,lam2)
+lik0 = llik(vals,lam0)
+lik1 = llik(vals,lam1)
+lik2 = llik(vals,lam2)
 
 do i = 1,imax
 
@@ -171,20 +168,22 @@ do i = 1,imax
     lam1 = lam1 + (lam2 - lam1) / 2._dp
   end if
 
-  lik1 = lik(vals,lam1)
+  lik1 = llik(vals,lam1)
   
   if (abs(lik1-lik0) < eps .and. abs(lik2-lik1) < eps) then
     lambda = lam1
-    exit
+    return
   end if
   
 end do
+
+write(0,*)'estlambda warning: maximum number of iterations reached'
 
 end function lambda
 
 ! ------------------------------
 
-real(dp) function lik(vals,lam)
+real(dp) function llik(vals,lam)
 
 ! calculate the likelihood metric for lambda given values and an input lambda
 
@@ -221,9 +220,9 @@ zbar = mean(zeta)
 
 rss = sum((zeta - zbar)**2)
 
-lik = -0.5_dp * n * log(rss)
+llik = -0.5_dp * n * log(rss)
 
-end function lik
+end function llik
 
 ! ------------------------------
 

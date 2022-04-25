@@ -218,7 +218,7 @@ do y = 1,ylen
 
     mmtransform = mmtransform + alpha
 
-    ! In cases with relatively few fire observations relative to zero background,
+    ! NB In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
     
     lambda = estlambda(mmtransform,lrng)
@@ -281,7 +281,7 @@ do y = 1,ylen
 
     mmtransform = mmtransform + alpha
 
-    ! In cases with relatively few fire observations relative to zero background,
+    ! NB In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
     
     lambda = estlambda(mmtransform,lrng)

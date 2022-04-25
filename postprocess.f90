@@ -10,7 +10,7 @@ program postprocess
 
 use iso_fortran_env
 use netcdf
-use chardatamod, only : boxcox,estlambda => lambda,stdev
+use chardatamod, only : mean,stdev,boxcox,estlambda => lambda
 
 implicit none
 
@@ -20,9 +20,10 @@ integer, parameter :: dp = real64
 integer, parameter :: y0 = 0
 integer, parameter :: y1 = 6000
 
-real(dp), parameter :: alpha = 0.01
-
-real(sp), parameter :: missing = -9999.
+! Following GCD convention, the range of lambda is limited to (-2,2) and alpha is 0.01,
+! but both of these values could be customized here
+real(dp), parameter :: lrng  = 2.     ! search range for lambda
+real(dp), parameter :: alpha = 0.01   ! offset value for raw data to eliminate zeroes
 
 integer :: ncid
 integer :: dimid
@@ -44,6 +45,8 @@ real(sp) :: bfmin
 real(sp) :: bfmax
 
 real(dp) :: lambda
+
+real(sp) :: missing
 
 character(200) :: lpjfile
 character(200) :: outfile
@@ -191,6 +194,12 @@ bctransform_zscore = missing
 ! -------------------------
 ! calculations for burned area fraction
 
+status = nf90_inq_varid(ncid,'zscore_burnedf',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_get_att(ncid,varid,'missing_value',missing)
+if (status /= nf90_noerr) call netcdf_err(status)
+
 do y = 1,ylen
   do x = 1,xlen
 
@@ -209,11 +218,10 @@ do y = 1,ylen
 
     mmtransform = mmtransform + alpha
 
-    ! Following GCD convention, the range of lambda is limited to (-2,2).
     ! In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
     
-    lambda = estlambda(mmtransform,2._dp)
+    lambda = estlambda(mmtransform,lrng)
 
     ! (2) box-cox
 
@@ -228,15 +236,12 @@ do y = 1,ylen
     
     ! (4) Z-score
     
-    bctransform_minmax_mean = sum(bctransform_minmax) / real(size(bctransform_minmax))
+    bctransform_minmax_mean = mean(bctransform_minmax)
     
     bctransform_zscore(x,y,:) = (bctransform_minmax - bctransform_minmax_mean) / stdev(bctransform_minmax)
 
   end do
 end do
-
-status = nf90_inq_varid(ncid,'zscore_burnedf',varid)
-if (status /= nf90_noerr) call netcdf_err(status)
 
 status = nf90_put_var(ncid,varid,bctransform_zscore)
 if (status /= nf90_noerr) call netcdf_err(status)
@@ -249,6 +254,12 @@ if (status /= nf90_noerr) call netcdf_err(status)
 
 ! -------------------------
 ! calculations for fire carbon emissions
+
+status = nf90_inq_varid(ncid,'zscore_acflux',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_get_att(ncid,varid,'missing_value',missing)
+if (status /= nf90_noerr) call netcdf_err(status)
 
 do y = 1,ylen
   do x = 1,xlen
@@ -268,11 +279,10 @@ do y = 1,ylen
 
     mmtransform = mmtransform + alpha
 
-    ! Following GCD convention, the range of lambda is limited to (-2,2).
     ! In cases with relatively few fire observations relative to zero background,
     ! lambda ends up being on the boundary of the search domain. 
     
-    lambda = estlambda(mmtransform,2._dp)
+    lambda = estlambda(mmtransform,lrng)
 
     ! (2) box-cox
 
@@ -287,15 +297,12 @@ do y = 1,ylen
     
     ! (4) Z-score
     
-    bctransform_minmax_mean = sum(bctransform_minmax) / real(size(bctransform_minmax))
+    bctransform_minmax_mean = mean(bctransform_minmax)
     
     bctransform_zscore(x,y,:) = (bctransform_minmax - bctransform_minmax_mean) / stdev(bctransform_minmax)
 
   end do
 end do
-
-status = nf90_inq_varid(ncid,'zscore_acflux',varid)
-if (status /= nf90_noerr) call netcdf_err(status)
 
 status = nf90_put_var(ncid,varid,bctransform_zscore)
 if (status /= nf90_noerr) call netcdf_err(status)
@@ -317,13 +324,15 @@ contains
 
 subroutine netcdf_err(ncstat)
 
-!prints out text message each time an error code is returned.
+! handles netCDF errors; writes the error message if an error is encountered.
 
 use netcdf, only : nf90_strerror
 
 implicit none
 
 integer, intent(in) :: ncstat
+
+! ------
 
 write(0,'(a,i5,a,a)')' NetCDF error ',ncstat,' encountered: ',trim(nf90_strerror(ncstat))
 stop

@@ -22,6 +22,8 @@ integer, parameter :: y1 = 6000
 
 real(dp), parameter :: alpha = 0.01
 
+real(sp), parameter :: missing = -9999.
+
 integer :: ncid
 integer :: dimid
 integer :: varid
@@ -64,6 +66,8 @@ real(sp), allocatable, dimension(:) :: bctransform_minmax
 real(sp), allocatable, dimension(:,:,:) :: bctransform_zscore
 
 real(sp) :: bctransform_minmax_mean
+
+real(sp), dimension(2) :: rng
 
 ! -------------------------
 
@@ -148,6 +152,31 @@ if (status /= nf90_noerr) call netcdf_err(status)
 
 ! -------------------------
 
+call getarg(2,outfile)
+
+status = nf90_open(outfile,nf90_write,ncid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_inq_varid(ncid,'lon',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_put_var(ncid,varid,lon)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_inq_varid(ncid,'lat',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_put_var(ncid,varid,lat)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_inq_varid(ncid,'time',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_put_var(ncid,varid,time(t0:t1))
+if (status /= nf90_noerr) call netcdf_err(status)
+
+! -------------------------
+
 olen = 1+t1-t0
 
 allocate(mmtransform(olen))
@@ -157,9 +186,10 @@ allocate(bctransform_minmax(olen))
 
 allocate(bctransform_zscore(xlen,ylen,olen))
 
-! ss = 0 ! 0.05 * olen
+bctransform_zscore = missing
 
-bctransform_zscore = -9999.
+! -------------------------
+! calculations for burned area fraction
 
 do y = 1,ylen
   do x = 1,xlen
@@ -202,34 +232,75 @@ do y = 1,ylen
   end do
 end do
 
-call getarg(2,outfile)
-
-status = nf90_open(outfile,nf90_write,ncid)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_inq_varid(ncid,'lon',varid)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_put_var(ncid,varid,lon)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_inq_varid(ncid,'lat',varid)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_put_var(ncid,varid,lat)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_inq_varid(ncid,'time',varid)
-if (status /= nf90_noerr) call netcdf_err(status)
-
-status = nf90_put_var(ncid,varid,time(t0:t1))
-if (status /= nf90_noerr) call netcdf_err(status)
-
 status = nf90_inq_varid(ncid,'zscore_burnedf',varid)
 if (status /= nf90_noerr) call netcdf_err(status)
 
 status = nf90_put_var(ncid,varid,bctransform_zscore)
 if (status /= nf90_noerr) call netcdf_err(status)
+
+rng(1) = minval(bctransform_zscore,mask=bctransform_zscore/=missing)
+rng(2) = maxval(bctransform_zscore,mask=bctransform_zscore/=missing)
+
+status = nf90_put_att(ncid,varid,'actual_range',rng)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+! -------------------------
+! calculations for fire carbon emissions
+
+do y = 1,ylen
+  do x = 1,xlen
+
+    vals => acflux_fire(x,y,t0:t1)
+    
+    if (count(vals > 0.) == 0) cycle
+
+    ! (1) min-max
+  
+    bfmin = minval(vals)
+    bfmax = maxval(vals)
+
+    mmtransform = (vals - bfmin) / (bfmax - bfmin) + alpha
+    
+    ! Following Bart's (2022) advice, lambda is calculated after adding alpha.
+    ! In cases with relatively few fire observations relative to zero background,
+    ! lambda ends up being on the boundary of the search domain. 
+    ! Further following GCD convention, the range of lambda is limited to (-2,2).
+    
+    lambda = estlambda(mmtransform,2._dp)
+
+    ! (2) box-cox
+
+    bctransform = sngl(boxcox(lambda,mmtransform))
+    
+    ! (3) min-max (again)
+    
+    bfmin = minval(bctransform)
+    bfmax = maxval(bctransform)
+    
+    bctransform_minmax = (bctransform - bfmin) / (bfmax - bfmin)
+    
+    ! (4) Z-score
+    
+    bctransform_minmax_mean = sum(bctransform_minmax) / real(size(bctransform_minmax))
+    
+    bctransform_zscore(x,y,:) = (bctransform_minmax - bctransform_minmax_mean) / stdev(bctransform_minmax)
+
+  end do
+end do
+
+status = nf90_inq_varid(ncid,'zscore_acflux',varid)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+status = nf90_put_var(ncid,varid,bctransform_zscore)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+rng(1) = minval(bctransform_zscore,mask=bctransform_zscore/=missing)
+rng(2) = maxval(bctransform_zscore,mask=bctransform_zscore/=missing)
+
+status = nf90_put_att(ncid,varid,'actual_range',rng)
+if (status /= nf90_noerr) call netcdf_err(status)
+
+! -------------------------
 
 status = nf90_close(ncid)
 if (status /= nf90_noerr) call netcdf_err(status)
@@ -237,8 +308,6 @@ if (status /= nf90_noerr) call netcdf_err(status)
 ! -------------------------
 
 contains
-
-! -------------------------
 
 subroutine netcdf_err(ncstat)
 
